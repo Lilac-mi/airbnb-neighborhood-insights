@@ -5,7 +5,9 @@ A data pipeline to uncover neighborhood vibes for Airbnb travelers using Python,
 (Coming soon!)
 
 ## Setup
-(Stay tuned!)
+- Downloaded `listings.csv` and `reviews.csv` from Inside Airbnb (San Francisco) 
+- Used 'osmnx' to fetch geospatial data (parks) and saved sample plot for aprks near sample Airbnb listing
+
 
 ## Goals
 - Build a pipeline to merge Airbnb data with geospatial insights.
