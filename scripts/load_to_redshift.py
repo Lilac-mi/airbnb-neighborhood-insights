@@ -1,6 +1,7 @@
 import psycopg2
 from dotenv import load_dotenv
 import os
+import csv
 
 # Load env vars
 load_dotenv()
@@ -82,3 +83,72 @@ print(f"Listing count with min transit distance  < 1000m: {result[0]}")
 cur.close()
 conn.close()
 
+
+
+conn = psycopg2.connect(
+    dbname=REDSHIFT_DB,
+    host=REDSHIFT_HOST,
+    port=REDSHIFT_PORT,
+    user=REDSHIFT_USER,
+    password=REDSHIFT_PASSWORD
+)
+cur = conn.cursor()
+
+query = """
+SELECT 
+    CASE 
+        WHEN min_transit_distance < 500 THEN '< 500m'
+        WHEN min_transit_distance < 1000 THEN '500-1000m'
+        ELSE '> 1000m'
+    END AS transit_range,
+    ROUND(AVG(price), 2) AS avg_price,
+    COUNT(*) AS listing_count
+FROM listings
+GROUP BY 1
+ORDER BY 1;
+"""
+cur.execute(query)
+results = cur.fetchall()
+for row in results:
+    print(f"Transit Range: {row[0]}, Avg Price: ${row[1]}, Listings: {row[2]}")
+
+cur.close()
+conn.close()
+
+# New connection for   query
+conn = psycopg2.connect(
+    dbname=REDSHIFT_DB,
+    host=REDSHIFT_HOST,
+    port=REDSHIFT_PORT,
+    user=REDSHIFT_USER,
+    password=REDSHIFT_PASSWORD
+)
+cur = conn.cursor()
+
+neighborhood_query = """
+SELECT 
+    FLOOR(latitude * 100) / 100 AS lat_bin,
+    FLOOR(longitude * 100) / 100 AS lon_bin,
+    ROUND(AVG(price), 2) AS avg_price,
+    COUNT(*) AS listing_count,
+    ROUND(100.0 * COUNT(min_transit_distance) / COUNT(*), 1) AS pct_with_transit
+FROM listings
+GROUP BY 1, 2
+HAVING COUNT(*) > 5
+ORDER BY avg_price DESC
+LIMIT 10;
+"""
+cur.execute(neighborhood_query)
+results = cur.fetchall()
+
+with open('data/processed/neighborhood_insights.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['lat_bin', 'lon_bin', 'avg_price', 'listing_count', 'pct_with_transit'])
+    writer.writerows(results)
+
+print("Top 10 pricey neighborhoods exported!")
+for row in results:
+    print(f"Lat: {row[0]}, Lon: {row[1]}, Avg Price: ${row[2]}, Listings: {row[3]}, Transit Coverage: {row[4]}%")
+
+cur.close()
+conn.close()
