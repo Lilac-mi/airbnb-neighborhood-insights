@@ -12,6 +12,8 @@ Python (pandas, osmnx), AWS (S3, Redshift), Streamlit.
 - Build interatcive Streamlit dashboard
 - Integrated AWS S3 for data storage
 - Set up Redshift Serverless, loaded S3 data into `listings` table, and debugged data mismatches
+- Pivoted project to focus on price, lat/lon, and listing density; updated Redshift and insights on Mar 10, 2025.
+- Built interactive Streamlit map (Folium) or dashboard (Plotly) for price and density insights
 
 
 ## Goals
