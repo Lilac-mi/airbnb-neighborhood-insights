@@ -125,13 +125,14 @@ conn = psycopg2.connect(
 )
 cur = conn.cursor()
 
+# Run insights query
 neighborhood_query = """
 SELECT 
     FLOOR(latitude * 100) / 100 AS lat_bin,
     FLOOR(longitude * 100) / 100 AS lon_bin,
     ROUND(AVG(price), 2) AS avg_price,
     COUNT(*) AS listing_count,
-    ROUND(100.0 * COUNT(min_transit_distance) / COUNT(*), 1) AS pct_with_transit
+    ROUND(COUNT(*) / (0.01 * 0.01 * 111 * 111), 2) AS density_per_sq_km
 FROM listings
 GROUP BY 1, 2
 HAVING COUNT(*) > 5
@@ -141,14 +142,16 @@ LIMIT 10;
 cur.execute(neighborhood_query)
 results = cur.fetchall()
 
+# Export
 with open('data/processed/neighborhood_insights.csv', 'w', newline='') as f:
     writer = csv.writer(f)
-    writer.writerow(['lat_bin', 'lon_bin', 'avg_price', 'listing_count', 'pct_with_transit'])
+    writer.writerow(['lat_bin', 'lon_bin', 'avg_price', 'listing_count', 'density_per_sq_km'])
     writer.writerows(results)
 
 print("Top 10 pricey neighborhoods exported!")
 for row in results:
-    print(f"Lat: {row[0]}, Lon: {row[1]}, Avg Price: ${row[2]}, Listings: {row[3]}, Transit Coverage: {row[4]}%")
+    print(f"Lat: {row[0]}, Lon: {row[1]}, Avg Price: ${row[2]}, Listings: {row[3]}, Density: {row[4]}/sq km")
 
+conn.commit()
 cur.close()
 conn.close()
